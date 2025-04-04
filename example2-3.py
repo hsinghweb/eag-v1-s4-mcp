@@ -11,6 +11,11 @@ import win32gui
 import win32con
 import time
 from win32api import GetSystemMetrics
+from pptx import Presentation
+from pptx.util import Inches
+import os
+from pptx.dml.color import RGBColor
+from pptx.util import Pt
 
 # instantiate an MCP server client
 mcp = FastMCP("Calculator")
@@ -152,173 +157,271 @@ def fibonacci_numbers(n: int) -> list:
         fib_sequence.append(fib_sequence[-1] + fib_sequence[-2])
     return fib_sequence[:n]
 
+@mcp.tool()
+async def close_powerpoint() -> dict:
+    """Close PowerPoint"""
+    try:
+        # Close PowerPoint
+        os.system('taskkill /F /IM POWERPNT.EXE')
+        time.sleep(2)
+        
+        return {
+            "content": [
+                TextContent(
+                    type="text",
+                    text="PowerPoint closed successfully"
+                )
+            ]
+        }
+    except Exception as e:
+        print(f"Error in close_powerpoint: {str(e)}")
+        return {
+            "content": [
+                TextContent(
+                    type="text",
+                    text=f"Error closing PowerPoint: {str(e)}"
+                )
+            ]
+        }
+
+@mcp.tool()
+async def open_powerpoint() -> dict:
+    """Open a new PowerPoint presentation"""
+    try:
+        # Close any existing PowerPoint instances
+        await close_powerpoint()
+        time.sleep(3)  # Increased wait time
+        
+        # Create a new presentation
+        prs = Presentation()
+        
+        # Add a title slide
+        title_slide_layout = prs.slide_layouts[0]
+        slide = prs.slides.add_slide(title_slide_layout)
+        
+        # Save the presentation
+        filename = 'presentation.pptx'
+        prs.save(filename)
+        time.sleep(5)  # Increased wait time for file save
+        
+        # Open the presentation
+        os.startfile(filename)
+        time.sleep(10)  # Increased wait time for PowerPoint to open
+        
+        return {
+            "content": [
+                TextContent(
+                    type="text",
+                    text="PowerPoint opened successfully with a new presentation"
+                )
+            ]
+        }
+    except Exception as e:
+        print(f"Error in open_powerpoint: {str(e)}")
+        return {
+            "content": [
+                TextContent(
+                    type="text",
+                    text=f"Error opening PowerPoint: {str(e)}"
+                )
+            ]
+        }
 
 @mcp.tool()
 async def draw_rectangle(x1: int, y1: int, x2: int, y2: int) -> dict:
-    """Draw a rectangle in Paint from (x1,y1) to (x2,y2)"""
-    global paint_app
+    """Draw a rectangle in the first slide of PowerPoint"""
     try:
-        if not paint_app:
+        print(f"DEBUG: Drawing rectangle with raw parameters: x1={x1} ({type(x1)}), y1={y1} ({type(y1)}), x2={x2} ({type(x2)}), y2={y2} ({type(y2)})")
+        
+        # Convert parameters to integers
+        try:
+            x1 = int(float(str(x1)))
+            y1 = int(float(str(y1)))
+            x2 = int(float(str(x2)))
+            y2 = int(float(str(y2)))
+        except (ValueError, TypeError) as e:
+            error_msg = f"Failed to convert parameters to integers: {str(e)}"
+            print(f"DEBUG: {error_msg}")
+            return {"content": [TextContent(type="text", text=error_msg)]}
+
+        print(f"DEBUG: Converted coordinates: ({x1},{y1}) to ({x2},{y2})")
+        
+        # Validate coordinates
+        if not (1 <= x1 <= 8 and 1 <= y1 <= 8 and 1 <= x2 <= 8 and 1 <= y2 <= 8):
+            error_msg = f"Coordinates must be between 1 and 8, got: ({x1},{y1}) to ({x2},{y2})"
+            print(f"DEBUG: {error_msg}")
+            return {"content": [TextContent(type="text", text=error_msg)]}
+        
+        if x2 <= x1 or y2 <= y1:
+            error_msg = f"End coordinates must be greater than start coordinates: ({x1},{y1}) to ({x2},{y2})"
+            print(f"DEBUG: {error_msg}")
+            return {"content": [TextContent(type="text", text=error_msg)]}
+        
+        # Wait before modifying the presentation
+        time.sleep(2)
+        
+        # Ensure PowerPoint is closed before modifying the file
+        await close_powerpoint()
+        time.sleep(2)
+        
+        try:
+            # Open the existing presentation
+            prs = Presentation('presentation.pptx')
+            slide = prs.slides[0]
+            
+            # Store existing text boxes
+            text_boxes = []
+            for shape in slide.shapes:
+                if shape.has_text_frame:
+                    text = shape.text_frame.text
+                    left = shape.left
+                    top = shape.top
+                    width = shape.width
+                    height = shape.height
+                    text_boxes.append((text, left, top, width, height))
+            
+            # Clear existing shapes except text boxes
+            for shape in slide.shapes:
+                if not shape.has_text_frame:
+                    sp = shape._element
+                    sp.getparent().remove(sp)
+            
+            # Convert coordinates to inches
+            left = Inches(x1)
+            top = Inches(y1)
+            width = Inches(x2 - x1)
+            height = Inches(y2 - y1)
+            
+            print(f"DEBUG: Rectangle dimensions - left={left}, top={top}, width={width}, height={height}")
+            
+            # Add rectangle
+            shape = slide.shapes.add_shape(
+                1,  # MSO_SHAPE.RECTANGLE
+                left, top, width, height
+            )
+            
+            # Make the rectangle more visible
+            shape.fill.solid()
+            shape.fill.fore_color.rgb = RGBColor(255, 255, 255)  # White fill
+            shape.line.color.rgb = RGBColor(0, 0, 0)  # Black border
+            shape.line.width = Pt(4)  # Thicker border
+            
+            # Save the presentation
+            prs.save('presentation.pptx')
+            time.sleep(2)
+            
+            # Reopen PowerPoint
+            os.startfile('presentation.pptx')
+            time.sleep(5)
+            
+            print("DEBUG: Rectangle drawn successfully")
             return {
                 "content": [
                     TextContent(
                         type="text",
-                        text="Paint is not open. Please call open_paint first."
+                        text=f"Rectangle drawn successfully from ({x1},{y1}) to ({x2},{y2})"
                     )
                 ]
             }
+            
+        except Exception as e:
+            error_msg = f"PowerPoint operation failed: {str(e)}"
+            print(f"DEBUG: {error_msg}")
+            return {"content": [TextContent(type="text", text=error_msg)]}
+            
+    except Exception as e:
+        error_msg = f"Error in draw_rectangle: {str(e)}"
+        print(f"DEBUG: {error_msg}")
+        print(f"DEBUG: Error type: {type(e)}")
+        import traceback
+        traceback.print_exc()
+        return {"content": [TextContent(type="text", text=error_msg)]}
+
+@mcp.tool()
+async def add_text_in_powerpoint(text: str) -> dict:
+    """Add text to the first slide of PowerPoint"""
+    try:
+        print(f"DEBUG: Received text to add: {text}")
+        print(f"DEBUG: Text type: {type(text)}")
+        print(f"DEBUG: Text length: {len(text)}")
+        print(f"DEBUG: Text contains newlines: {repr(text)}")
         
-        # Get the Paint window
-        paint_window = paint_app.window(class_name='MSPaintApp')
+        # Wait before adding text
+        time.sleep(5)
         
-        # Get primary monitor width to adjust coordinates
-        primary_width = GetSystemMetrics(0)
+        # Ensure PowerPoint is closed before modifying the file
+        await close_powerpoint()
+        time.sleep(5)
         
-        # Ensure Paint window is active
-        if not paint_window.has_focus():
-            paint_window.set_focus()
-            time.sleep(0.2)
+        # Open the existing presentation
+        prs = Presentation('presentation.pptx')
+        slide = prs.slides[0]
         
-        # Click on the Rectangle tool using the correct coordinates for secondary screen
-        paint_window.click_input(coords=(530, 82 ))
-        time.sleep(0.2)
+        # Add a text box positioned inside the rectangle
+        # Match the rectangle position from draw_rectangle
+        left = Inches(2.2)  # Slightly more than rectangle left for margin
+        top = Inches(2.5)   # Centered vertically in rectangle
+        width = Inches(4.6) # Slightly less than rectangle width for margin
+        height = Inches(2)  # Enough height for text
         
-        # Get the canvas area
-        canvas = paint_window.child_window(class_name='MSPaintView')
+        textbox = slide.shapes.add_textbox(left, top, width, height)
+        text_frame = textbox.text_frame
+        text_frame.clear()  # Clear existing text
+        text_frame.word_wrap = True  # Enable word wrap
+        text_frame.vertical_anchor = 1  # Middle vertical alignment
         
-        # Draw rectangle - coordinates should already be relative to the Paint window
-        # No need to add primary_width since we're clicking within the Paint window
-        canvas.press_mouse_input(coords=(x1+2560, y1))
-        canvas.move_mouse_input(coords=(x2+2560, y2))
-        canvas.release_mouse_input(coords=(x2+2560, y2))
+        # Split text into lines
+        lines = text.split('\n')
+        print(f"DEBUG: Number of lines: {len(lines)}")
+        print(f"DEBUG: Lines to add: {lines}")
         
+        # Add each line as a separate paragraph
+        for i, line in enumerate(lines):
+            if line.strip():  # Only add non-empty lines
+                p = text_frame.add_paragraph()
+                p.text = line.strip()
+                p.alignment = 1  # Center align the text
+                
+                # Format the text
+                run = p.runs[0]
+                if "Final Result:" in line:
+                    run.font.size = Pt(32)  # Header size
+                    run.font.bold = True
+                else:
+                    run.font.size = Pt(28)  # Value size
+                    run.font.bold = True
+                
+                run.font.color.rgb = RGBColor(0, 0, 0)  # Black text
+                p.space_after = Pt(12)  # Add spacing between lines
+        
+        # Save and wait
+        prs.save('presentation.pptx')
+        time.sleep(5)
+        
+        # Reopen PowerPoint
+        os.startfile('presentation.pptx')
+        time.sleep(10)
+        
+        print(f"DEBUG: Text added successfully: {text}")
         return {
             "content": [
                 TextContent(
                     type="text",
-                    text=f"Rectangle drawn from ({x1},{y1}) to ({x2},{y2})"
+                    text=f"Text added successfully: {text}"
                 )
             ]
         }
     except Exception as e:
+        print(f"Error in add_text_in_powerpoint: {str(e)}")
         return {
             "content": [
                 TextContent(
                     type="text",
-                    text=f"Error drawing rectangle: {str(e)}"
+                    text=f"Error adding text: {str(e)}"
                 )
             ]
         }
 
-@mcp.tool()
-async def add_text_in_paint(text: str) -> dict:
-    """Add text in Paint"""
-    global paint_app
-    try:
-        if not paint_app:
-            return {
-                "content": [
-                    TextContent(
-                        type="text",
-                        text="Paint is not open. Please call open_paint first."
-                    )
-                ]
-            }
-        
-        # Get the Paint window
-        paint_window = paint_app.window(class_name='MSPaintApp')
-        
-        # Ensure Paint window is active
-        if not paint_window.has_focus():
-            paint_window.set_focus()
-            time.sleep(0.5)
-        
-        # Click on the Rectangle tool
-        paint_window.click_input(coords=(528, 92))
-        time.sleep(0.5)
-        
-        # Get the canvas area
-        canvas = paint_window.child_window(class_name='MSPaintView')
-        
-        # Select text tool using keyboard shortcuts
-        paint_window.type_keys('t')
-        time.sleep(0.5)
-        paint_window.type_keys('x')
-        time.sleep(0.5)
-        
-        # Click where to start typing
-        canvas.click_input(coords=(810, 533))
-        time.sleep(0.5)
-        
-        # Type the text passed from client
-        paint_window.type_keys(text)
-        time.sleep(0.5)
-        
-        # Click to exit text mode
-        canvas.click_input(coords=(1050, 800))
-        
-        return {
-            "content": [
-                TextContent(
-                    type="text",
-                    text=f"Text:'{text}' added successfully"
-                )
-            ]
-        }
-    except Exception as e:
-        return {
-            "content": [
-                TextContent(
-                    type="text",
-                    text=f"Error: {str(e)}"
-                )
-            ]
-        }
-
-@mcp.tool()
-async def open_paint() -> dict:
-    """Open Microsoft Paint maximized on secondary monitor"""
-    global paint_app
-    try:
-        paint_app = Application().start('mspaint.exe')
-        time.sleep(0.2)
-        
-        # Get the Paint window
-        paint_window = paint_app.window(class_name='MSPaintApp')
-        
-        # Get primary monitor width
-        primary_width = GetSystemMetrics(0)
-        
-        # First move to secondary monitor without specifying size
-        win32gui.SetWindowPos(
-            paint_window.handle,
-            win32con.HWND_TOP,
-            primary_width + 1, 0,  # Position it on secondary monitor
-            0, 0,  # Let Windows handle the size
-            win32con.SWP_NOSIZE  # Don't change the size
-        )
-        
-        # Now maximize the window
-        win32gui.ShowWindow(paint_window.handle, win32con.SW_MAXIMIZE)
-        time.sleep(0.2)
-        
-        return {
-            "content": [
-                TextContent(
-                    type="text",
-                    text="Paint opened successfully on secondary monitor and maximized"
-                )
-            ]
-        }
-    except Exception as e:
-        return {
-            "content": [
-                TextContent(
-                    type="text",
-                    text=f"Error opening Paint: {str(e)}"
-                )
-            ]
-        }
 # DEFINE RESOURCES
 
 # Add a dynamic greeting resource
@@ -346,7 +449,7 @@ def debug_error(error: str) -> list[base.Message]:
 
 if __name__ == "__main__":
     # Check if running with mcp dev command
-    print("STARTING")
+    print("STARTING THE SERVER")
     if len(sys.argv) > 1 and sys.argv[1] == "dev":
         mcp.run()  # Run without transport for dev server
     else:
