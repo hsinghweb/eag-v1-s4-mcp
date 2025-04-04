@@ -10,6 +10,7 @@ from pywinauto.application import Application
 import win32gui
 import win32con
 import time
+import asyncio
 from win32api import GetSystemMetrics
 from pptx import Presentation
 from pptx.util import Inches
@@ -17,8 +18,29 @@ import os
 from pptx.dml.color import RGBColor
 from pptx.util import Pt
 
-# instantiate an MCP server client
-mcp = FastMCP("Calculator")
+# Set up logging
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+# instantiate an MCP server client with web visualization enabled
+mcp = FastMCP("Calculator", host="127.0.0.1", port=8000, enable_web_ui=True)
+
+# Configure logging for tool operations
+@mcp.tool()
+def log_tool_start(tool_name, **kwargs):
+    logging.info(f"Tool Execution Started - Tool: {tool_name}, Args: {kwargs}")
+
+@mcp.tool()
+def log_tool_end(tool_name, result):
+    logging.info(f"Tool Execution Completed - Tool: {tool_name}, Result: {result}")
+
+@mcp.tool()
+def log_tool_error(tool_name, error):
+    logging.error(f"Tool Error Occurred - Tool: {tool_name}, Error: {error}")
 
 # DEFINE TOOLS
 
@@ -26,105 +48,159 @@ mcp = FastMCP("Calculator")
 @mcp.tool()
 def add(a: int, b: int) -> int:
     """Add two numbers"""
-    print("CALLED: add(a: int, b: int) -> int:")
-    return int(a + b)
+    logging.debug(f"Adding numbers: {a} + {b}")
+    result = int(a + b)
+    logging.info(f"Addition result: {result}")
+    return result
 
 @mcp.tool()
 def add_list(l: list) -> int:
     """Add all numbers in a list"""
-    print("CALLED: add(l: list) -> int:")
-    return sum(l)
+    logging.debug(f"Adding numbers in list: {l}")
+    result = sum(l)
+    logging.info(f"List sum result: {result}")
+    return result
 
 # subtraction tool
 @mcp.tool()
 def subtract(a: int, b: int) -> int:
     """Subtract two numbers"""
-    print("CALLED: subtract(a: int, b: int) -> int:")
-    return int(a - b)
+    logging.debug(f"Subtracting numbers: {a} - {b}")
+    result = int(a - b)
+    logging.info(f"Subtraction result: {result}")
+    return result
 
 # multiplication tool
 @mcp.tool()
 def multiply(a: int, b: int) -> int:
     """Multiply two numbers"""
-    print("CALLED: multiply(a: int, b: int) -> int:")
-    return int(a * b)
+    logging.debug(f"Multiplying numbers: {a} * {b}")
+    result = int(a * b)
+    logging.info(f"Multiplication result: {result}")
+    return result
 
 #  division tool
 @mcp.tool() 
 def divide(a: int, b: int) -> float:
     """Divide two numbers"""
-    print("CALLED: divide(a: int, b: int) -> float:")
-    return float(a / b)
+    logging.debug(f"Dividing numbers: {a} / {b}")
+    try:
+        result = float(a / b)
+        logging.info(f"Division result: {result}")
+        return result
+    except ZeroDivisionError as e:
+        logging.error(f"Division by zero error: {e}")
+        raise
 
 # power tool
 @mcp.tool()
 def power(a: int, b: int) -> int:
     """Power of two numbers"""
-    print("CALLED: power(a: int, b: int) -> int:")
-    return int(a ** b)
+    logging.debug(f"Calculating power: {a} ** {b}")
+    result = int(a ** b)
+    logging.info(f"Power operation result: {result}")
+    return result
 
 # square root tool
 @mcp.tool()
 def sqrt(a: int) -> float:
     """Square root of a number"""
-    print("CALLED: sqrt(a: int) -> float:")
-    return float(a ** 0.5)
+    logging.debug(f"Calculating square root of: {a}")
+    try:
+        result = float(a ** 0.5)
+        logging.info(f"Square root result: {result}")
+        return result
+    except ValueError as e:
+        logging.error(f"Square root error: {e}")
+        raise
 
 # cube root tool
 @mcp.tool()
 def cbrt(a: int) -> float:
     """Cube root of a number"""
-    print("CALLED: cbrt(a: int) -> float:")
-    return float(a ** (1/3))
+    logging.debug(f"Calculating cube root of: {a}")
+    try:
+        result = float(a ** (1/3))
+        logging.info(f"Cube root result: {result}")
+        return result
+    except ValueError as e:
+        logging.error(f"Cube root error: {e}")
+        raise
 
 # factorial tool
 @mcp.tool()
 def factorial(a: int) -> int:
     """factorial of a number"""
-    print("CALLED: factorial(a: int) -> int:")
-    return int(math.factorial(a))
+    logging.debug(f"Calculating factorial of: {a}")
+    try:
+        result = int(math.factorial(a))
+        logging.info(f"Factorial result: {result}")
+        return result
+    except ValueError as e:
+        logging.error(f"Factorial error: {e}")
+        raise
 
 # log tool
 @mcp.tool()
 def log(a: int) -> float:
     """log of a number"""
-    print("CALLED: log(a: int) -> float:")
-    return float(math.log(a))
+    logging.debug(f"Calculating natural log of: {a}")
+    try:
+        result = float(math.log(a))
+        logging.info(f"Natural log result: {result}")
+        return result
+    except ValueError as e:
+        logging.error(f"Natural log error: {e}")
+        raise
 
 # remainder tool
 @mcp.tool()
 def remainder(a: int, b: int) -> int:
     """remainder of two numbers divison"""
-    print("CALLED: remainder(a: int, b: int) -> int:")
-    return int(a % b)
+    logging.debug(f"Calculating remainder: {a} % {b}")
+    try:
+        result = int(a % b)
+        logging.info(f"Remainder result: {result}")
+        return result
+    except ZeroDivisionError as e:
+        logging.error(f"Remainder error: {e}")
+        raise
 
 # sin tool
 @mcp.tool()
 def sin(a: int) -> float:
     """sin of a number"""
-    print("CALLED: sin(a: int) -> float:")
-    return float(math.sin(a))
+    logging.debug(f"Calculating sine of: {a}")
+    result = float(math.sin(a))
+    logging.info(f"Sine result: {result}")
+    return result
 
 # cos tool
 @mcp.tool()
 def cos(a: int) -> float:
     """cos of a number"""
-    print("CALLED: cos(a: int) -> float:")
-    return float(math.cos(a))
+    logging.debug(f"Calculating cosine of: {a}")
+    result = float(math.cos(a))
+    logging.info(f"Cosine result: {result}")
+    return result
 
 # tan tool
 @mcp.tool()
 def tan(a: int) -> float:
     """tan of a number"""
-    print("CALLED: tan(a: int) -> float:")
-    return float(math.tan(a))
+    logging.debug(f"Calculating tangent of: {a}")
+    result = float(math.tan(a))
+    logging.info(f"Tangent result: {result}")
+    return result
 
 # mine tool
 @mcp.tool()
 def mine(a: int, b: int) -> int:
     """special mining tool"""
-    print("CALLED: mine(a: int, b: int) -> int:")
-    return int(a - b - b)
+    logging.debug(f"Executing mining operation with: {a}, {b}")
+    result = int(a - b - b)
+    logging.info(f"Mining operation result: {result}")
+    return result
 
 @mcp.tool()
 def create_thumbnail(image_path: str) -> Image:
@@ -161,36 +237,36 @@ def fibonacci_numbers(n: int) -> list:
 async def close_powerpoint() -> dict:
     """Close PowerPoint"""
     try:
-        # Close PowerPoint
-        os.system('taskkill /F /IM POWERPNT.EXE')
-        time.sleep(2)
+        # Try multiple window title variations
+        titles = ["presentation.pptx - PowerPoint", "PowerPoint", "Microsoft PowerPoint"]
+        closed = False
         
-        return {
-            "content": [
-                TextContent(
-                    type="text",
-                    text="PowerPoint closed successfully"
-                )
-            ]
-        }
+        for title in titles:
+            hwnd = win32gui.FindWindow(None, title)
+            if hwnd:
+                try:
+                    win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
+                    closed = True
+                except Exception as e:
+                    logging.error(f"Failed to close window '{title}': {e}")
+                    continue
+        
+        if closed:
+            await asyncio.sleep(1)
+            return {"content": [TextContent(type="text", text="PowerPoint closed successfully")]}
+        else:
+            return {"content": [TextContent(type="text", text="No PowerPoint windows found")]}
     except Exception as e:
-        print(f"Error in close_powerpoint: {str(e)}")
-        return {
-            "content": [
-                TextContent(
-                    type="text",
-                    text=f"Error closing PowerPoint: {str(e)}"
-                )
-            ]
-        }
+        logging.error(f"Error in close_powerpoint: {e}")
+        return {"content": [TextContent(type="text", text=f"Error closing PowerPoint: {str(e)}")]}
 
 @mcp.tool()
 async def open_powerpoint() -> dict:
     """Open a new PowerPoint presentation"""
     try:
-        # Close any existing PowerPoint instances
+        # Close any existing PowerPoint instances first
         await close_powerpoint()
-        time.sleep(3)  # Increased wait time
+        await asyncio.sleep(2)  # Wait for PowerPoint to close
         
         # Create a new presentation
         prs = Presentation()
@@ -202,11 +278,11 @@ async def open_powerpoint() -> dict:
         # Save the presentation
         filename = 'presentation.pptx'
         prs.save(filename)
-        time.sleep(5)  # Increased wait time for file save
+        await asyncio.sleep(2)  # Wait for file to be saved
         
         # Open the presentation
         os.startfile(filename)
-        time.sleep(10)  # Increased wait time for PowerPoint to open
+        await asyncio.sleep(3)  # Wait for PowerPoint to open
         
         return {
             "content": [
@@ -231,60 +307,33 @@ async def open_powerpoint() -> dict:
 async def draw_rectangle(x1: int, y1: int, x2: int, y2: int) -> dict:
     """Draw a rectangle in the first slide of PowerPoint"""
     try:
-        print(f"DEBUG: Drawing rectangle with raw parameters: x1={x1} ({type(x1)}), y1={y1} ({type(y1)}), x2={x2} ({type(x2)}), y2={y2} ({type(y2)})")
-        
-        # Convert parameters to integers
+        # Convert and validate parameters
         try:
-            x1 = int(float(str(x1)))
-            y1 = int(float(str(y1)))
-            x2 = int(float(str(x2)))
-            y2 = int(float(str(y2)))
+            x1, y1, x2, y2 = map(lambda x: int(float(str(x))), [x1, y1, x2, y2])
         except (ValueError, TypeError) as e:
             error_msg = f"Failed to convert parameters to integers: {str(e)}"
-            print(f"DEBUG: {error_msg}")
+            logging.error(error_msg)
             return {"content": [TextContent(type="text", text=error_msg)]}
 
-        print(f"DEBUG: Converted coordinates: ({x1},{y1}) to ({x2},{y2})")
-        
         # Validate coordinates
-        if not (1 <= x1 <= 8 and 1 <= y1 <= 8 and 1 <= x2 <= 8 and 1 <= y2 <= 8):
+        if not all(1 <= coord <= 8 for coord in [x1, y1, x2, y2]):
             error_msg = f"Coordinates must be between 1 and 8, got: ({x1},{y1}) to ({x2},{y2})"
-            print(f"DEBUG: {error_msg}")
+            logging.error(error_msg)
             return {"content": [TextContent(type="text", text=error_msg)]}
         
         if x2 <= x1 or y2 <= y1:
-            error_msg = f"End coordinates must be greater than start coordinates: ({x1},{y1}) to ({x2},{y2})"
-            print(f"DEBUG: {error_msg}")
+            error_msg = f"End coordinates must be greater than start coordinates"
+            logging.error(error_msg)
             return {"content": [TextContent(type="text", text=error_msg)]}
         
-        # Wait before modifying the presentation
-        time.sleep(2)
-        
-        # Ensure PowerPoint is closed before modifying the file
+        # Close PowerPoint before modifying
         await close_powerpoint()
-        time.sleep(2)
+        await asyncio.sleep(1)
         
         try:
-            # Open the existing presentation
+            # Open and modify presentation
             prs = Presentation('presentation.pptx')
             slide = prs.slides[0]
-            
-            # Store existing text boxes
-            text_boxes = []
-            for shape in slide.shapes:
-                if shape.has_text_frame:
-                    text = shape.text_frame.text
-                    left = shape.left
-                    top = shape.top
-                    width = shape.width
-                    height = shape.height
-                    text_boxes.append((text, left, top, width, height))
-            
-            # Clear existing shapes except text boxes
-            for shape in slide.shapes:
-                if not shape.has_text_frame:
-                    sp = shape._element
-                    sp.getparent().remove(sp)
             
             # Convert coordinates to inches
             left = Inches(x1)
@@ -292,27 +341,23 @@ async def draw_rectangle(x1: int, y1: int, x2: int, y2: int) -> dict:
             width = Inches(x2 - x1)
             height = Inches(y2 - y1)
             
-            print(f"DEBUG: Rectangle dimensions - left={left}, top={top}, width={width}, height={height}")
-            
             # Add rectangle
             shape = slide.shapes.add_shape(
                 1,  # MSO_SHAPE.RECTANGLE
                 left, top, width, height
             )
             
-            # Make the rectangle more visible
+            # Style the rectangle
             shape.fill.solid()
-            shape.fill.fore_color.rgb = RGBColor(255, 255, 255)  # White fill
-            shape.line.color.rgb = RGBColor(0, 0, 0)  # Black border
-            shape.line.width = Pt(4)  # Thicker border
+            shape.fill.fore_color.rgb = RGBColor(255, 255, 255)
+            shape.line.color.rgb = RGBColor(0, 0, 0)
+            shape.line.width = Pt(4)
             
-            # Save the presentation
+            # Save and reopen
             prs.save('presentation.pptx')
-            time.sleep(2)
-            
-            # Reopen PowerPoint
+            await asyncio.sleep(1)
             os.startfile('presentation.pptx')
-            time.sleep(5)
+            await asyncio.sleep(2)
             
             print("DEBUG: Rectangle drawn successfully")
             return {
@@ -347,11 +392,11 @@ async def add_text_in_powerpoint(text: str) -> dict:
         print(f"DEBUG: Text contains newlines: {repr(text)}")
         
         # Wait before adding text
-        time.sleep(5)
+        await asyncio.sleep(5)
         
         # Ensure PowerPoint is closed before modifying the file
         await close_powerpoint()
-        time.sleep(5)
+        await asyncio.sleep(5)
         
         # Open the existing presentation
         prs = Presentation('presentation.pptx')
@@ -396,11 +441,11 @@ async def add_text_in_powerpoint(text: str) -> dict:
         
         # Save and wait
         prs.save('presentation.pptx')
-        time.sleep(5)
+        await asyncio.sleep(5)
         
         # Reopen PowerPoint
         os.startfile('presentation.pptx')
-        time.sleep(10)
+        await asyncio.sleep(10)
         
         print(f"DEBUG: Text added successfully: {text}")
         return {
