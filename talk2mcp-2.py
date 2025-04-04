@@ -230,7 +230,7 @@ async def main():
                                     tools_description.append(
                                         f"{i+1}. Error processing tool")
 
-                                return "\n".join(tools_description)
+                            return "\n".join(tools_description)
                         except Exception as e:
                             logger.error(
                                 f"Error creating tools description: {e}")
@@ -325,169 +325,169 @@ async def main():
                             print(f"Failed to get LLM response: {e}")
                             break
 
-                            if response_text.startswith("FUNCTION_CALL:"):
-                                _, function_info = response_text.split(":", 1)
-                                parts = [p.strip()
-                                         for p in function_info.split("|")]
-                                func_name, params = parts[0], parts[1:]
+                        if response_text.startswith("FUNCTION_CALL:"):
+                            _, function_info = response_text.split(":", 1)
+                            parts = [p.strip()
+                                        for p in function_info.split("|")]
+                            func_name, params = parts[0], parts[1:]
+
+                            print(
+                                f"\nDEBUG: Raw function info: {function_info}")
+                            print(f"DEBUG: Split parts: {parts}")
+                            print(f"DEBUG: Function name: {func_name}")
+                            print(f"DEBUG: Raw parameters: {params}")
+
+                            try:
+                                # Find the matching tool to get its input
+                                # schema
+                                tool = next(
+                                    (t for t in tools if t.name == func_name), None)
+                                if not tool:
+                                    raise ValueError(
+                                        f"Unknown tool: {func_name}")
+
+                                arguments = {}
+                                schema_properties = tool.inputSchema.get(
+                                    'properties', {})
+
+                                for param_name, param_info in schema_properties.items():
+                                    if not params:
+                                        raise ValueError(
+                                            f"Not enough parameters for {func_name}")
+
+                                    value = params.pop(0)
+                                    param_type = param_info.get(
+                                        'type', 'string')
+
+                                    try:
+                                        arguments[param_name] = await convert_param_value(value, param_type)
+                                    except ValueError as e:
+                                        logger.error(
+                                            f"Error converting parameter {param_name}: {e}")
+                                        raise ValueError(
+                                            f"Invalid parameter {param_name}: {value}")
+
+                                result = await session.call_tool(func_name, arguments=arguments)
+                                print(f"DEBUG: Raw result: {result}")
+
+                                # Get the full result content
+                                if hasattr(result, 'content'):
+                                    print(
+                                        f"DEBUG: Result has content attribute")
+                                    if isinstance(result.content, list):
+                                        iteration_result = [
+                                            str(item) for item in result.content]
+                                    else:
+                                        iteration_result = str(
+                                            result.content)
+                                else:
+                                    print(
+                                        f"DEBUG: Result has no content attribute")
+                                    iteration_result = str(result)
 
                                 print(
-                                    f"\nDEBUG: Raw function info: {function_info}")
-                                print(f"DEBUG: Split parts: {parts}")
-                                print(f"DEBUG: Function name: {func_name}")
-                                print(f"DEBUG: Raw parameters: {params}")
+                                    f"DEBUG: Final iteration result: {iteration_result}")
 
-                                try:
-                                    # Find the matching tool to get its input
-                                    # schema
-                                    tool = next(
-                                        (t for t in tools if t.name == func_name), None)
-                                    if not tool:
+                                # Format the response based on result type
+                                if isinstance(iteration_result, list):
+                                    result_str = f"[{', '.join(iteration_result)}]"
+                                else:
+                                    result_str = str(iteration_result)
+
+                                state.iteration_response.append(
+                                    f"In the {state.iteration + 1} iteration you called {func_name} with {arguments} parameters, "
+                                    f"and the function returned {result_str}.")
+                                state.last_response = iteration_result
+
+                            except Exception as e:
+                                print(f"DEBUG: Error details: {str(e)}")
+                                print(f"DEBUG: Error type: {type(e)}")
+                                import traceback
+                                traceback.print_exc()
+                                state.iteration_response.append(
+                                    f"Error in iteration {state.iteration + 1}: {str(e)}")
+                                break
+
+                        elif response_text.startswith("POWERPOINT:"):
+                            try:
+                                _, powerpoint_info = response_text.split(
+                                    ":", 1)
+                                parts = [
+                                    p.strip() for p in powerpoint_info.split("|")]
+                                operation, params = parts[0], parts[1:]
+
+                                logger.info(
+                                    f"Processing PowerPoint operation: {operation} with params: {params}")
+
+                                # Map PowerPoint operations to actual tool
+                                # functions
+                                if operation == "open_powerpoint":
+                                    result = await session.call_tool("open_powerpoint", arguments={})
+                                elif operation == "close_powerpoint":
+                                    result = await session.call_tool("close_powerpoint", arguments={})
+                                elif operation == "draw_rectangle":
+                                    if len(params) < 4:
                                         raise ValueError(
-                                            f"Unknown tool: {func_name}")
+                                            "Not enough parameters for draw_rectangle")
+                                    arguments = {
+                                        "x1": await convert_param_value(params[0], "integer"),
+                                        "y1": await convert_param_value(params[1], "integer"),
+                                        "x2": await convert_param_value(params[2], "integer"),
+                                        "y2": await convert_param_value(params[3], "integer")
+                                    }
+                                    result = await session.call_tool("draw_rectangle", arguments=arguments)
+                                elif operation == "add_text_in_powerpoint":
+                                    if not params:
+                                        raise ValueError(
+                                            "Text parameter is required for add_text_in_powerpoint")
+                                    result = await session.call_tool("add_text_in_powerpoint", arguments={"text": params[0]})
+                                else:
+                                    raise ValueError(
+                                        f"Unknown PowerPoint operation: {operation}")
 
-                                    arguments = {}
-                                    schema_properties = tool.inputSchema.get(
-                                        'properties', {})
-
-                                    for param_name, param_info in schema_properties.items():
-                                        if not params:
-                                            raise ValueError(
-                                                f"Not enough parameters for {func_name}")
-
-                                        value = params.pop(0)
-                                        param_type = param_info.get(
-                                            'type', 'string')
-
-                                        try:
-                                            arguments[param_name] = await convert_param_value(value, param_type)
-                                        except ValueError as e:
-                                            logger.error(
-                                                f"Error converting parameter {param_name}: {e}")
-                                            raise ValueError(
-                                                f"Invalid parameter {param_name}: {value}")
-
-                                    result = await session.call_tool(func_name, arguments=arguments)
-                                    print(f"DEBUG: Raw result: {result}")
-
-                                    # Get the full result content
-                                    if hasattr(result, 'content'):
-                                        print(
-                                            f"DEBUG: Result has content attribute")
-                                        if isinstance(result.content, list):
-                                            iteration_result = [
-                                                str(item) for item in result.content]
-                                        else:
-                                            iteration_result = str(
-                                                result.content)
+                                # Format the response
+                                if hasattr(result, 'content'):
+                                    if isinstance(result.content, list):
+                                        result_str = ", ".join(
+                                            [str(item) for item in result.content])
                                     else:
-                                        print(
-                                            f"DEBUG: Result has no content attribute")
-                                        iteration_result = str(result)
+                                        result_str = str(result.content)
+                                else:
+                                    result_str = str(result)
 
-                                    print(
-                                        f"DEBUG: Final iteration result: {iteration_result}")
+                                state.iteration_response.append(
+                                    f"In the {state.iteration + 1} iteration you performed PowerPoint operation '{operation}', "
+                                    f"and the result was: {result_str}.")
 
-                                    # Format the response based on result type
-                                    if isinstance(iteration_result, list):
-                                        result_str = f"[{', '.join(iteration_result)}]"
-                                    else:
-                                        result_str = str(iteration_result)
+                            except Exception as e:
+                                logger.error(
+                                    f"Error in PowerPoint operation: {e}")
+                                state.iteration_response.append(
+                                    f"Error in PowerPoint operation: {str(e)}")
+                                continue
 
-                                    state.iteration_response.append(
-                                        f"In the {state.iteration + 1} iteration you called {func_name} with {arguments} parameters, "
-                                        f"and the function returned {result_str}.")
-                                    state.last_response = iteration_result
-
-                                except Exception as e:
-                                    print(f"DEBUG: Error details: {str(e)}")
-                                    print(f"DEBUG: Error type: {type(e)}")
-                                    import traceback
-                                    traceback.print_exc()
-                                    state.iteration_response.append(
-                                        f"Error in iteration {state.iteration + 1}: {str(e)}")
-                                    break
-
-                            elif response_text.startswith("POWERPOINT:"):
-                                try:
-                                    _, powerpoint_info = response_text.split(
-                                        ":", 1)
-                                    parts = [
-                                        p.strip() for p in powerpoint_info.split("|")]
-                                    operation, params = parts[0], parts[1:]
-
+                        elif response_text.startswith("FINAL_ANSWER:"):
+                            try:
+                                _, answer = response_text.split(":", 1)
+                                answer = answer.strip()
+                                if answer.startswith(
+                                        "[") and answer.endswith("]"):
+                                    final_result = answer[1:-1].strip()
                                     logger.info(
-                                        f"Processing PowerPoint operation: {operation} with params: {params}")
-
-                                    # Map PowerPoint operations to actual tool
-                                    # functions
-                                    if operation == "open_powerpoint":
-                                        result = await session.call_tool("open_powerpoint", arguments={})
-                                    elif operation == "close_powerpoint":
-                                        result = await session.call_tool("close_powerpoint", arguments={})
-                                    elif operation == "draw_rectangle":
-                                        if len(params) < 4:
-                                            raise ValueError(
-                                                "Not enough parameters for draw_rectangle")
-                                        arguments = {
-                                            "x1": await convert_param_value(params[0], "integer"),
-                                            "y1": await convert_param_value(params[1], "integer"),
-                                            "x2": await convert_param_value(params[2], "integer"),
-                                            "y2": await convert_param_value(params[3], "integer")
-                                        }
-                                        result = await session.call_tool("draw_rectangle", arguments=arguments)
-                                    elif operation == "add_text_in_powerpoint":
-                                        if not params:
-                                            raise ValueError(
-                                                "Text parameter is required for add_text_in_powerpoint")
-                                        result = await session.call_tool("add_text_in_powerpoint", arguments={"text": params[0]})
-                                    else:
-                                        raise ValueError(
-                                            f"Unknown PowerPoint operation: {operation}")
-
-                                    # Format the response
-                                    if hasattr(result, 'content'):
-                                        if isinstance(result.content, list):
-                                            result_str = ", ".join(
-                                                [str(item) for item in result.content])
-                                        else:
-                                            result_str = str(result.content)
-                                    else:
-                                        result_str = str(result)
-
+                                        f"Final result: {final_result}")
                                     state.iteration_response.append(
-                                        f"In the {state.iteration + 1} iteration you performed PowerPoint operation '{operation}', "
-                                        f"and the result was: {result_str}.")
-
-                                except Exception as e:
-                                    logger.error(
-                                        f"Error in PowerPoint operation: {e}")
-                                    state.iteration_response.append(
-                                        f"Error in PowerPoint operation: {str(e)}")
+                                        f"Final result: {final_result}")
+                                    break
+                                else:
+                                    logger.warning(
+                                        "Invalid final answer format")
                                     continue
+                            except Exception as e:
+                                logger.error(
+                                    f"Error processing final answer: {e}")
+                                continue
 
-                            elif response_text.startswith("FINAL_ANSWER:"):
-                                try:
-                                    _, answer = response_text.split(":", 1)
-                                    answer = answer.strip()
-                                    if answer.startswith(
-                                            "[") and answer.endswith("]"):
-                                        final_result = answer[1:-1].strip()
-                                        logger.info(
-                                            f"Final result: {final_result}")
-                                        state.iteration_response.append(
-                                            f"Final result: {final_result}")
-                                        break
-                                    else:
-                                        logger.warning(
-                                            "Invalid final answer format")
-                                        continue
-                                except Exception as e:
-                                    logger.error(
-                                        f"Error processing final answer: {e}")
-                                    continue
-
-                            state.iteration += 1
+            state.iteration += 1
 
             break  # If we get here, everything worked fine
 
