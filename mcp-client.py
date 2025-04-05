@@ -214,25 +214,25 @@ Your entire response should be a single line starting with either FUNCTION_CALL:
                             parts = [p.strip() for p in function_info.split("|")]
                             func_name, params = parts[0], parts[1:]
                             
-                            print(f"\nDEBUG: Raw function info: {function_info}")
-                            print(f"DEBUG: Split parts: {parts}")
-                            print(f"DEBUG: Function name: {func_name}")
-                            print(f"DEBUG: Raw parameters: {params}")
+                            print(f"[Calling Tool] Raw function info: {function_info}")
+                            print(f"[Calling Tool] Split parts: {parts}")
+                            print(f"[Calling Tool] Function name: {func_name}")
+                            print(f"[Calling Tool] Raw parameters: {params}")
                             
                             try:
                                 # Find the matching tool to get its input schema
                                 tool = next((t for t in tools if t.name == func_name), None)
                                 if not tool:
-                                    print(f"DEBUG: Available tools: {[t.name for t in tools]}")
+                                    print(f"[Calling Tool] Available tools: {[t.name for t in tools]}")
                                     raise ValueError(f"Unknown tool: {func_name}")
 
-                                print(f"DEBUG: Found tool: {tool.name}")
-                                print(f"DEBUG: Tool schema: {tool.inputSchema}")
+                                print(f"[Calling Tool] Found tool: {tool.name}")
+                                print(f"[Calling Tool] Tool schema: {tool.inputSchema}")
 
                                 # Prepare arguments according to the tool's input schema
                                 arguments = {}
                                 schema_properties = tool.inputSchema.get('properties', {})
-                                print(f"DEBUG: Schema properties: {schema_properties}")
+                                print(f"[Calling Tool] Schema properties: {schema_properties}")
 
                                 for param_name, param_info in schema_properties.items():
                                     if not params:  # Check if we have enough parameters
@@ -241,7 +241,7 @@ Your entire response should be a single line starting with either FUNCTION_CALL:
                                     value = params.pop(0)  # Get and remove the first parameter
                                     param_type = param_info.get('type', 'string')
                                     
-                                    print(f"DEBUG: Converting parameter {param_name} with value {value} to type {param_type}")
+                                    print(f"[Calling Tool] Converting parameter {param_name} with value {value} to type {param_type}")
                                     
                                     # Convert the value to the correct type based on the schema
                                     if param_type == 'integer':
@@ -267,15 +267,15 @@ Your entire response should be a single line starting with either FUNCTION_CALL:
                                     else:
                                         arguments[param_name] = str(value)
 
-                                print(f"DEBUG: Final arguments: {arguments}")
-                                print(f"DEBUG: Calling tool {func_name}")
+                                print(f"[Calling Tool] Final arguments: {arguments}")
+                                print(f"[Calling Tool] Calling tool {func_name}")
                                 
                                 result = await session.call_tool(func_name, arguments=arguments)
-                                print(f"DEBUG: Raw result: {result}")
+                                print(f"[Calling LLM] Raw result: {result}")
                                 
                                 # Get the full result content
                                 if hasattr(result, 'content'):
-                                    print(f"DEBUG: Result has content attribute")
+                                    print(f"[Calling LLM] Result has content attribute")
                                     # Handle multiple content items
                                     if isinstance(result.content, list):
                                         iteration_result = [
@@ -285,10 +285,10 @@ Your entire response should be a single line starting with either FUNCTION_CALL:
                                     else:
                                         iteration_result = str(result.content)
                                 else:
-                                    print(f"DEBUG: Result has no content attribute")
+                                    print(f"[Calling LLM] Result has no content attribute")
                                     iteration_result = str(result)
                                     
-                                print(f"DEBUG: Final iteration result: {iteration_result}")
+                                print(f"[Calling LLM] Final iteration result: {iteration_result}")
                                 
                                 # Format the response based on result type
                                 if isinstance(iteration_result, list):
@@ -303,8 +303,8 @@ Your entire response should be a single line starting with either FUNCTION_CALL:
                                 last_response = iteration_result
 
                             except Exception as e:
-                                print(f"DEBUG: Error details: {str(e)}")
-                                print(f"DEBUG: Error type: {type(e)}")
+                                print(f"[Calling LLM] Error details: {str(e)}")
+                                print(f"[Calling LLM] Error type: {type(e)}")
                                 import traceback
                                 traceback.print_exc()
                                 iteration_response.append(f"Error in iteration {iteration + 1}: {str(e)}")
@@ -315,8 +315,8 @@ Your entire response should be a single line starting with either FUNCTION_CALL:
                             parts = [p.strip() for p in operation_info.split("|")]
                             operation, params = parts[0], parts[1:]
                             
-                            print(f"\nDEBUG: PowerPoint operation: {operation}")
-                            print(f"DEBUG: Parameters: {params}")
+                            print(f"[Calling Tool] PowerPoint operation: {operation}")
+                            print(f"[Calling Tool] PowerPoint parameters: {params}")
                             
                             try:
                                 if operation == "open_powerpoint":
@@ -341,8 +341,8 @@ Your entire response should be a single line starting with either FUNCTION_CALL:
                                                 }
                                             )
                                         except (ValueError, TypeError) as e:
-                                            print(f"DEBUG: Error converting rectangle parameters: {e}")
-                                            print(f"DEBUG: Raw parameters: {params}")
+                                            print(f"[Calling Tool] Error converting rectangle parameters: {e}")
+                                            print(f"[Calling Tool] Raw parameters: {params}")
                                             iteration_response.append(f"Error: Invalid rectangle parameters - {str(e)}")
                                             continue
                                     else:
@@ -356,14 +356,14 @@ Your entire response should be a single line starting with either FUNCTION_CALL:
                                         full_text = full_text.replace('"', '').replace("\\n", "\n")
                                         # Ensure proper newline handling
                                         full_text = full_text.replace('\n\n', '\n')
-                                        print(f"DEBUG: Full text to add: {repr(full_text)}")  # Show raw string representation
-                                        print(f"DEBUG: Text length: {len(full_text)}")
-                                        print(f"DEBUG: Text contains newlines: {'\\n' in full_text}")
+                                        print(f"[Calling Tool] Full text to add: {repr(full_text)}")  # Show raw string representation
+                                        print(f"[Calling Tool] Text length: {len(full_text)}")
+                                        print(f"[Calling Tool] Text contains newlines: {'\\n' in full_text}")
                                         
                                         # Split the text into lines and rejoin with proper newlines
                                         lines = full_text.split('\n')
                                         formatted_text = '\n'.join(line.strip() for line in lines if line.strip())
-                                        print(f"DEBUG: Formatted text: {repr(formatted_text)}")
+                                        print(f"[Calling Tool] Formatted text: {repr(formatted_text)}")
                                         
                                         result = await session.call_tool(
                                             "add_text_in_powerpoint",
@@ -391,11 +391,11 @@ Your entire response should be a single line starting with either FUNCTION_CALL:
                                 else:
                                     raise ValueError(f"Unknown PowerPoint operation: {operation}")
                                 
-                                print(f"DEBUG: PowerPoint result: {result}")
+                                print(f"[MCP Tool → LLM] PowerPoint result: {result}")
                                 iteration_response.append(f"PowerPoint operation '{operation}' completed successfully.")
                                 
                             except Exception as e:
-                                print(f"DEBUG: Error in PowerPoint operation: {str(e)}")
+                                print(f"[MCP Tool → LLM] Error in PowerPoint operation: {str(e)}")
                                 iteration_response.append(f"Error in PowerPoint operation: {str(e)}")
                                 break
 

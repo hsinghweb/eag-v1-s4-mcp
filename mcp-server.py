@@ -231,7 +231,7 @@ async def open_powerpoint() -> dict:
 async def draw_rectangle(x1: int, y1: int, x2: int, y2: int) -> dict:
     """Draw a rectangle in the first slide of PowerPoint"""
     try:
-        print(f"DEBUG: Drawing rectangle with raw parameters: x1={x1} ({type(x1)}), y1={y1} ({type(y1)}), x2={x2} ({type(x2)}), y2={y2} ({type(y2)})")
+        print(f"[MCP Tool] Drawing rectangle with raw parameters: x1={x1} ({type(x1)}), y1={y1} ({type(y1)}), x2={x2} ({type(x2)}), y2={y2} ({type(y2)})")
         
         # Convert parameters to integers
         try:
@@ -241,20 +241,20 @@ async def draw_rectangle(x1: int, y1: int, x2: int, y2: int) -> dict:
             y2 = int(float(str(y2)))
         except (ValueError, TypeError) as e:
             error_msg = f"Failed to convert parameters to integers: {str(e)}"
-            print(f"DEBUG: {error_msg}")
+            print(f"{error_msg}")
             return {"content": [TextContent(type="text", text=error_msg)]}
 
-        print(f"DEBUG: Converted coordinates: ({x1},{y1}) to ({x2},{y2})")
+        print(f"[MCP Tool] Converted coordinates: ({x1},{y1}) to ({x2},{y2})")
         
         # Validate coordinates
         if not (1 <= x1 <= 8 and 1 <= y1 <= 8 and 1 <= x2 <= 8 and 1 <= y2 <= 8):
             error_msg = f"Coordinates must be between 1 and 8, got: ({x1},{y1}) to ({x2},{y2})"
-            print(f"DEBUG: {error_msg}")
+            print(f"{error_msg}")
             return {"content": [TextContent(type="text", text=error_msg)]}
         
         if x2 <= x1 or y2 <= y1:
             error_msg = f"End coordinates must be greater than start coordinates: ({x1},{y1}) to ({x2},{y2})"
-            print(f"DEBUG: {error_msg}")
+            print(f"{error_msg}")
             return {"content": [TextContent(type="text", text=error_msg)]}
         
         # Wait before modifying the presentation
@@ -292,7 +292,7 @@ async def draw_rectangle(x1: int, y1: int, x2: int, y2: int) -> dict:
             width = Inches(x2 - x1)
             height = Inches(y2 - y1)
             
-            print(f"DEBUG: Rectangle dimensions - left={left}, top={top}, width={width}, height={height}")
+            print(f"[MCP Tool] Rectangle dimensions - left={left}, top={top}, width={width}, height={height}")
             
             # Add rectangle
             shape = slide.shapes.add_shape(
@@ -314,7 +314,7 @@ async def draw_rectangle(x1: int, y1: int, x2: int, y2: int) -> dict:
             os.startfile('presentation.pptx')
             time.sleep(5)
             
-            print("DEBUG: Rectangle drawn successfully")
+            print("[MCP Tool] Rectangle drawn successfully")
             return {
                 "content": [
                     TextContent(
@@ -326,13 +326,13 @@ async def draw_rectangle(x1: int, y1: int, x2: int, y2: int) -> dict:
             
         except Exception as e:
             error_msg = f"PowerPoint operation failed: {str(e)}"
-            print(f"DEBUG: {error_msg}")
+            print(f"{error_msg}")
             return {"content": [TextContent(type="text", text=error_msg)]}
             
     except Exception as e:
         error_msg = f"Error in draw_rectangle: {str(e)}"
-        print(f"DEBUG: {error_msg}")
-        print(f"DEBUG: Error type: {type(e)}")
+        print(f"{error_msg}")
+        print(f"[MCP Tool] Error type: {type(e)}")
         import traceback
         traceback.print_exc()
         return {"content": [TextContent(type="text", text=error_msg)]}
@@ -341,10 +341,10 @@ async def draw_rectangle(x1: int, y1: int, x2: int, y2: int) -> dict:
 async def add_text_in_powerpoint(text: str) -> dict:
     """Add text to the first slide of PowerPoint"""
     try:
-        print(f"DEBUG: Received text to add: {text}")
-        print(f"DEBUG: Text type: {type(text)}")
-        print(f"DEBUG: Text length: {len(text)}")
-        print(f"DEBUG: Text contains newlines: {'\\n' in text}")
+        print(f"[MCP Tool] Received text to add: {text}")
+        print(f"[MCP Tool] Text type: {type(text)}")
+        print(f"[MCP Tool] Text length: {len(text)}")
+        print(f"[MCP Tool] Text contains newlines: {'\\n' in text}")
         
         # Wait before adding text
         time.sleep(5)
@@ -372,8 +372,8 @@ async def add_text_in_powerpoint(text: str) -> dict:
         
         # Split text into lines
         lines = text.split('\n')
-        print(f"DEBUG: Number of lines: {len(lines)}")
-        print(f"DEBUG: Lines to add: {lines}")
+        print(f"[MCP Tool] Number of lines: {len(lines)}")
+        print(f"[MCP Tool] Lines to add: {lines}")
         
         # Add each line as a separate paragraph
         for i, line in enumerate(lines):
@@ -402,7 +402,7 @@ async def add_text_in_powerpoint(text: str) -> dict:
         os.startfile('presentation.pptx')
         time.sleep(10)
         
-        print(f"DEBUG: Text added successfully: {text}")
+        print(f"[MCP Tool] Text added successfully: {text}")
         return {
             "content": [
                 TextContent(
