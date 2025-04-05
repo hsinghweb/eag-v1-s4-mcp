@@ -66,7 +66,7 @@ async def main():
             print("Establishing connection to MCP server...")
             server_params = StdioServerParameters(
                 command="python",
-                args=["example2-3.py", "dev"]  # Add "dev" argument
+                args=["mcp-server.py", "dev"]  # Add "dev" argument
             )
 
             async with stdio_client(server_params) as (read, write):
@@ -175,7 +175,7 @@ Examples:
 DO NOT include any explanations or additional text.
 Your entire response should be a single line starting with either FUNCTION_CALL:, POWERPOINT:, or FINAL_ANSWER:"""
 
-                    query = """Find the ASCII values of characters in INDIA and then return sum of exponentials of those values. 
+                    query = """Find the ASCII values of characters in HIMANSHU and then return sum of exponentials of those values. 
                     Also, create a PowerPoint presentation showing the Final Answer inside a rectangle box."""
                     print("Starting iteration loop...")
                     
@@ -358,7 +358,7 @@ Your entire response should be a single line starting with either FUNCTION_CALL:
                                         full_text = full_text.replace('\n\n', '\n')
                                         print(f"DEBUG: Full text to add: {repr(full_text)}")  # Show raw string representation
                                         print(f"DEBUG: Text length: {len(full_text)}")
-                                        print(f"DEBUG: Text contains newlines: {full_text}")
+                                        print(f"DEBUG: Text contains newlines: {'\\n' in full_text}")
                                         
                                         # Split the text into lines and rejoin with proper newlines
                                         lines = full_text.split('\n')

@@ -344,7 +344,7 @@ async def add_text_in_powerpoint(text: str) -> dict:
         print(f"DEBUG: Received text to add: {text}")
         print(f"DEBUG: Text type: {type(text)}")
         print(f"DEBUG: Text length: {len(text)}")
-        print(f"DEBUG: Text contains newlines: {text}")
+        print(f"DEBUG: Text contains newlines: {'\\n' in text}")
         
         # Wait before adding text
         time.sleep(5)
