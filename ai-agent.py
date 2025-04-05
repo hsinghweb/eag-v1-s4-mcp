@@ -130,12 +130,6 @@ async def main():
 Available tools:
 {tools_description}
 
-PowerPoint Functions:
-1. open_powerpoint() - Opens a new PowerPoint presentation
-2. draw_rectangle(x1: int, y1: int, x2: int, y2: int) - Draws a rectangle in PowerPoint (use values between 1-8 for coordinates)
-3. add_text_in_powerpoint(text: str) - Adds text to PowerPoint
-4. close_powerpoint() - Closes PowerPoint
-
 You must follow this sequence for each problem:
 1. First, perform all necessary mathematical calculations using FUNCTION_CALL
 2. Then, use PowerPoint to visualize the results in this order:
@@ -164,12 +158,8 @@ You must respond with EXACTLY ONE line in one of these formats (no additional te
 
 Examples:
 - FUNCTION_CALL: add|5|3
-- FUNCTION_CALL: strings_to_chars_to_int|INDIA
-- FUNCTION_CALL: int_list_to_exponential_sum|73,78,68,73,65
 - POWERPOINT: open_powerpoint
-- POWERPOINT: draw_rectangle|2|2|7|5
 - POWERPOINT: add_text_in_powerpoint|Final Result:\\n7.59982224609308e+33
-- POWERPOINT: close_powerpoint
 - FINAL_ANSWER: [7.59982224609308e+33]
 
 DO NOT include any explanations or additional text.
